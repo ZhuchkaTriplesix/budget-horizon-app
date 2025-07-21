@@ -17,6 +17,21 @@ import { toast } from "@/hooks/use-toast";
 interface AddTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSubmit?: (transaction: TransactionData) => Promise<void>;
+}
+
+interface TransactionData {
+  type: 'income' | 'expense';
+  amount: number;
+  category: string;
+  description: string;
+  date: Date;
+}
+
+interface ValidationErrors {
+  amount?: string;
+  category?: string;
+  description?: string;
 }
 
 const categories = {
@@ -24,37 +39,81 @@ const categories = {
   expense: ['Продукты', 'Транспорт', 'Жилье', 'Развлечения', 'Здоровье', 'Образование', 'Одежда', 'Прочие расходы']
 };
 
-const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps) => {
+const AddTransactionDialog = ({ open, onOpenChange, onSubmit }: AddTransactionDialogProps) => {
   const [type, setType] = useState<'income' | 'expense'>('expense');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState<Date>(new Date());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = (): boolean => {
+    const newErrors: ValidationErrors = {};
     
-    if (!amount || !category || !description) {
-      toast({
-        title: "Ошибка",
-        description: "Пожалуйста, заполните все обязательные поля",
-        variant: "destructive"
-      });
-      return;
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      newErrors.amount = "Введите корректную сумму больше нуля";
     }
+    
+    if (!category) {
+      newErrors.category = "Выберите категорию";
+    }
+    
+    if (!description.trim()) {
+      newErrors.description = "Введите описание";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-    // Здесь будет логика сохранения транзакции
-    toast({
-      title: "Операция добавлена",
-      description: `${type === 'income' ? 'Доход' : 'Расход'} на сумму ${amount} ₽ успешно добавлен`,
-    });
-
-    // Сброс формы
+  const resetForm = () => {
     setAmount('');
     setCategory('');
     setDescription('');
     setDate(new Date());
-    onOpenChange(false);
+    setErrors({});
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const transactionData: TransactionData = {
+        type,
+        amount: Number(amount),
+        category,
+        description: description.trim(),
+        date
+      };
+
+      if (onSubmit) {
+        await onSubmit(transactionData);
+      }
+
+      toast({
+        title: "Операция добавлена",
+        description: `${type === 'income' ? 'Доход' : 'Расход'} на сумму ${amount} ₽ успешно добавлен`,
+      });
+
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      toast({
+        title: "Ошибка",
+        description: "Не удалось сохранить операцию. Попробуйте позже.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,17 +154,25 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="pr-8"
+                className={cn("pr-8", errors.amount && "border-red-500")}
+                aria-invalid={!!errors.amount}
+                aria-describedby={errors.amount ? "amount-error" : undefined}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">₽</span>
             </div>
+            {errors.amount && (
+              <p id="amount-error" className="text-sm text-red-500 mt-1">{errors.amount}</p>
+            )}
           </div>
 
           {/* Категория */}
           <div className="space-y-2">
             <Label>Категория *</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
+            <Select 
+              value={category} 
+              onValueChange={setCategory}
+            >
+              <SelectTrigger className={cn(errors.category && "border-red-500")}>
                 <SelectValue placeholder="Выберите категорию" />
               </SelectTrigger>
               <SelectContent>
@@ -116,6 +183,9 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
                 ))}
               </SelectContent>
             </Select>
+            {errors.category && (
+              <p className="text-sm text-red-500 mt-1">{errors.category}</p>
+            )}
           </div>
 
           {/* Описание */}
@@ -126,13 +196,17 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
               placeholder="Опишите операцию..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              className={cn(errors.description && "border-red-500")}
               rows={3}
             />
+            {errors.description && (
+              <p className="text-sm text-red-500 mt-1">{errors.description}</p>
+            )}
           </div>
 
           {/* Дата */}
           <div className="space-y-2">
-            <Label>Дата операции</Label>
+            <Label>Дата</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -143,7 +217,7 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP", { locale: ru }) : "Выберите дату"}
+                  {date ? format(date, 'PPP', { locale: ru }) : <span>Выберите дату</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -152,27 +226,17 @@ const AddTransactionDialog = ({ open, onOpenChange }: AddTransactionDialogProps)
                   selected={date}
                   onSelect={(date) => date && setDate(date)}
                   initialFocus
-                  className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
           </div>
 
-          {/* Кнопки */}
-          <div className="flex gap-3 pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-            >
+          <div className="flex justify-end gap-3">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Отмена
             </Button>
-            <Button 
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-            >
-              Добавить
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Сохранение..." : "Сохранить"}
             </Button>
           </div>
         </form>
