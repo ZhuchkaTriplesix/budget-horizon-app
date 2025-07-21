@@ -1,7 +1,10 @@
 # 1. Билд-стейдж
-FROM node:20-alpine AS builder
+FROM node:20-bullseye AS builder
 
 WORKDIR /app
+
+# Установим esbuild для Debian (опционально, но обычно не требуется)
+# RUN apt-get update && apt-get install -y esbuild
 
 COPY . .
 
