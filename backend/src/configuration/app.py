@@ -17,7 +17,7 @@ class App:
     def _register_events(self) -> None:
         @self.app.on_event("startup")
         async def on_startup() -> None:
-            # Создаём таблицы, если их ещё нет. Для быстрого старта без Alembic.
+            # Создаём таблицы, если их ещё нет (на случай, если миграций нет).
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
 
