@@ -30,12 +30,6 @@ services:
     volumes:
       - ./backend:/app
 
-volumes:
-  pgdata:
-
-version: '3.8'
-
-services:
   frontend:
     build:
       context: ./frontend
@@ -44,3 +38,6 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+
+volumes:
+  pgdata:
