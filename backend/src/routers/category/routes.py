@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from .dal import CategoryDAL
 from .schemas import Category, CategoryCreate
-from backend.src.database.core import get_db
+from src.database.core import get_db
 from typing import List
 
 router = APIRouter()

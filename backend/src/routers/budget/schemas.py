@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
 
 class BudgetBase(BaseModel):
@@ -13,5 +13,4 @@ class BudgetCreate(BudgetBase):
 class Budget(BudgetBase):
     id: int
     user_id: int
-    class Config:
-        orm_mode = True 
+    model_config = ConfigDict(from_attributes=True)

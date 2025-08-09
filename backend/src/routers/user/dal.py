@@ -27,6 +27,13 @@ class UserDAL:
         if user:
             return user[0]
 
+    async def get_user_by_id(self, user_id) -> Optional[User]:
+        query = select(User).where(User.id == user_id)
+        res = await self.session.execute(query)
+        user = res.fetchone()
+        if user:
+            return user[0]
+
     async def get_user_by_phone_number(self, phone_number: str) -> Optional[User]:
         query = select(User).where(User.phone_number == phone_number)
         res = await self.session.execute(query)

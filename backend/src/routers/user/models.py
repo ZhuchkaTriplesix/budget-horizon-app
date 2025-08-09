@@ -6,7 +6,6 @@ from sqlalchemy import types, String, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.database.core import Base
-from src.routers.cart.models import CartItem
 
 
 class User(Base):
@@ -17,4 +16,8 @@ class User(Base):
     phone_number: Mapped[str] = mapped_column(String(50), nullable=False)
     is_verify: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
-    cart_items: Mapped[List["CartItem"]] = relationship(cascade="all, delete")
+    # Связи для согласованности с остальными моделями
+    categories = relationship("Category", back_populates="user")
+    transactions = relationship("Transaction", back_populates="user")
+    budgets = relationship("Budget", back_populates="user")
+    tags = relationship("Tag", back_populates="user")

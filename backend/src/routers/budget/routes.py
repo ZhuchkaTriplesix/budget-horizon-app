@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from .dal import BudgetDAL
 from .schemas import Budget, BudgetCreate
-from backend.src.database.core import get_db
+from src.database.core import get_db
 from typing import List
 
 router = APIRouter()
